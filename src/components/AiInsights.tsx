@@ -1,0 +1,112 @@
+import React, { useState } from 'react';
+import { MessageSquare, AlertTriangle, Zap } from 'lucide-react';
+import { motion, AnimatePresence } from 'framer-motion';
+import { aiService, type Anomaly, type QueryResponse } from '../lib/ai';
+
+interface AiInsightsProps {
+  anomalies: Anomaly[];
+}
+
+export const AiInsights: React.FC<AiInsightsProps> = ({ anomalies }) => {
+  const [query, setQuery] = useState('');
+  const [response, setResponse] = useState<QueryResponse | null>(null);
+  const [isLoading, setIsLoading] = useState(false);
+
+  const handleAsk = async () => {
+    if (!query.trim()) return;
+    
+    setIsLoading(true);
+    try {
+      const result = await aiService.askQuestion(query);
+      setResponse(result);
+    } catch (error) {
+      console.error('Failed to get response:', error);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  return (
+    <div className="space-y-6">
+      {/* Anomalies Section */}
+      {anomalies.length > 0 && (
+        <motion.div
+          initial={{ opacity: 0, y: 10 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="p-6 bg-white/80 dark:bg-gray-800/80 rounded-xl shadow-lg"
+        >
+          <div className="flex items-center gap-2 mb-4">
+            <AlertTriangle className="w-5 h-5 text-yellow-500" />
+            <h3 className="text-lg font-semibold">AI-Detected Anomalies</h3>
+          </div>
+          <div className="space-y-3">
+            {anomalies.map((anomaly, index) => (
+              <div
+                key={index}
+                className="flex items-start gap-3 p-4 bg-gray-50 dark:bg-gray-700/50 rounded-lg"
+              >
+                <Zap className={`w-5 h-5 ${
+                  anomaly.severity === 'high' ? 'text-red-500' :
+                  anomaly.severity === 'medium' ? 'text-yellow-500' :
+                  'text-blue-500'
+                }`} />
+                <div>
+                  <p className="font-medium text-gray-900 dark:text-white">
+                    {anomaly.description}
+                  </p>
+                  <p className="text-sm text-gray-600 dark:text-gray-300">
+                    Value: {anomaly.value} ({anomaly.field})
+                  </p>
+                </div>
+              </div>
+            ))}
+          </div>
+        </motion.div>
+      )}
+
+      {/* AI Query Interface */}
+      <div className="p-6 bg-white/80 dark:bg-gray-800/80 rounded-xl shadow-lg">
+        <div className="flex items-center gap-2 mb-4">
+          <MessageSquare className="w-5 h-5 text-blue-500" />
+          <h3 className="text-lg font-semibold">Ask About Your Network</h3>
+        </div>
+        
+        <div className="space-y-4">
+          <div className="flex gap-2">
+            <input
+              type="text"
+              value={query}
+              onChange={(e) => setQuery(e.target.value)}
+              placeholder="e.g., Why is the network slow?"
+              className="flex-1 px-4 py-2 rounded-lg bg-gray-50 dark:bg-gray-700/50 border border-gray-200 dark:border-gray-600 focus:outline-none focus:ring-2 focus:ring-blue-500"
+              onKeyPress={(e) => e.key === 'Enter' && handleAsk()}
+            />
+            <button
+              onClick={handleAsk}
+              disabled={isLoading || !query.trim()}
+              className="px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-colors disabled:opacity-50"
+            >
+              {isLoading ? 'Thinking...' : 'Ask'}
+            </button>
+          </div>
+
+          <AnimatePresence>
+            {response && (
+              <motion.div
+                initial={{ opacity: 0, y: 10 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -10 }}
+                className="p-4 bg-gray-50 dark:bg-gray-700/50 rounded-lg"
+              >
+                <p className="text-gray-900 dark:text-white">{response.response}</p>
+                <p className="text-sm text-gray-600 dark:text-gray-300 mt-2">
+                  Confidence: {(response.confidence * 100).toFixed(1)}%
+                </p>
+              </motion.div>
+            )}
+          </AnimatePresence>
+        </div>
+      </div>
+    </div>
+  );
+};
