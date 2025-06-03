@@ -40,13 +40,13 @@ def get_network_health(host="google.com", packets=4):
 
         # Categorize network health
         if packet_loss == 100:
-            return {"status": "critical", "reason": "No response from host.", "data": f"{avg_latency, packet_loss}"}
+            return {"status": "critical", "reason": "No response from host.", "latency": f"{avg_latency}","packetl":f"{packet_loss}"}
         elif packet_loss > 50 or avg_latency > 500:
-            return {"status": "critical", "reason": f"High latency: {avg_latency} ms, {packet_loss}% packet loss.", "data": f"{avg_latency, packet_loss}"}
+            return {"status": "critical", "reason": f"High latency: {avg_latency} ms, {packet_loss}% packet loss.", "latency": f"{avg_latency}","packetl":f"{packet_loss}"}
         elif packet_loss > 10 or avg_latency > 200:
-            return {"status": "warning", "reason": f"Moderate latency: {avg_latency} ms, {packet_loss}% packet loss.", "data": f"{avg_latency, packet_loss}"}
+            return {"status": "warning", "reason": f"Moderate latency: {avg_latency} ms, {packet_loss}% packet loss.", "latency": f"{avg_latency}","packetl":f"{packet_loss}"}
         else:
-            return {"status": "healthy", "reason": f"Stable connection: {avg_latency} ms, {packet_loss}% packet loss.", "data": f"{avg_latency, packet_loss}"}
+            return {"status": "healthy", "reason": f"Stable connection: {avg_latency} ms, {packet_loss}% packet loss.", "latency": f"{avg_latency}","packetl":f"{packet_loss}"}
 
     except Exception as e:
         return {"status": "critical", "reason": f"Error: {e}"}

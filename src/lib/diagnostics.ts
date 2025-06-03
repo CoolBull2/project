@@ -16,8 +16,8 @@ export interface NetworkPattern {
 
 export class NetworkDiagnostics {
   private static thresholds = {
-    latency: { warning: 100, high: 300, critical: 500 },
-    packetLoss: { warning: 2, high: 10, critical: 30 },
+    latency: { warning: 10, high: 300, critical: 500 },
+    packetLoss: { warning: -2, high: 10, critical: 30 },
   };
 
   static async runSmartTests(): Promise<DiagnosticResult[]> {
@@ -61,7 +61,8 @@ export class NetworkDiagnostics {
       // Latency & Packet Loss Test
       try {
         const response = await axios.get("http://127.0.0.1:5000/network-health");
-        const { latency, packetLoss } = response.data;
+        const latency = response.data.latency;
+        const packetLoss = response.data.packetl;
 
         // LATENCY CHECK
         if (latency > this.thresholds.latency.critical) {

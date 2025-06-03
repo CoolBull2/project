@@ -39,8 +39,8 @@ function Dashboard() {
       // Extract metrics from the response
       const metrics: NetworkMetrics = {
         timestamp: new Date().toISOString(),
-        latency_ms: parseFloat(response.data.data.split(",")[0]),
-        packet_loss: parseFloat(response.data.data.split(",")[1]),
+        latency_ms: parseFloat(response.data.latency),
+        packet_loss: parseFloat(response.data.packetl),
         jitter_ms: Math.random() * 20, // Mock jitter data
         errors: Math.floor(Math.random() * 5), // Mock error count
       };
@@ -253,9 +253,7 @@ function Dashboard() {
                                 {result.severity.toUpperCase()}
                               </span>
                             </div>
-                            <p className="text-sm text-gray-600 dark:text-gray-300">
-                              {result.recommendation}
-                            </p>
+                            
                           </div>
                         ))}
                       </div>
