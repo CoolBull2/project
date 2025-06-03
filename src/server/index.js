@@ -1,7 +1,6 @@
-import express from 'express';
-import cors from 'cors';
-import natural from 'natural';
-import * as tf from '@tensorflow/tfjs';
+import express from "express";
+import cors from "cors";
+import natural from "natural";
 
 const app = express();
 const port = 3000;
@@ -9,24 +8,23 @@ const port = 3000;
 app.use(cors());
 app.use(express.json());
 
-// Simple anomaly detection using z-score
 function detectAnomalies(metrics) {
   const threshold = 2; // Standard deviations
-  const fields = ['latency_ms', 'packet_loss', 'jitter_ms', 'errors'];
+  const fields = ["latency_ms", "packet_loss", "jitter_ms", "errors"];
   const anomalies = [];
 
-  fields.forEach(field => {
+  fields.forEach((field) => {
     const value = metrics[field];
     const mean = historicalMean[field] || value;
     const stdDev = historicalStdDev[field] || 1;
-    
+
     const zScore = Math.abs((value - mean) / stdDev);
     if (zScore > threshold) {
       anomalies.push({
         field,
         value,
-        severity: zScore > 3 ? 'high' : 'medium',
-        description: `Unusual ${field.replace('_', ' ')} detected`
+        severity: zScore > 3 ? "high" : "medium",
+        description: `Unusual ${field.replace("_", " ")} detected`,
       });
     }
   });
@@ -34,131 +32,187 @@ function detectAnomalies(metrics) {
   return anomalies;
 }
 
-// Enhanced NLP for network-related queries
 const classifier = new natural.BayesClassifier();
 
-// Train the classifier with more comprehensive examples
-classifier.addDocument('Why is the network slow?', 'latency');
-classifier.addDocument('Why is my internet slow?', 'latency');
-classifier.addDocument('High ping times', 'latency');
-classifier.addDocument('Slow response time', 'latency');
-classifier.addDocument('Website loading slowly', 'latency');
-classifier.addDocument('Games lagging', 'latency');
+// Latency
+classifier.addDocument("Why is the network slow?", "latency");
+classifier.addDocument("Why is my internet slow?", "latency");
+classifier.addDocument("High ping times", "latency");
+classifier.addDocument("Slow response time", "latency");
+classifier.addDocument("Website loading slowly", "latency");
+classifier.addDocument("Games lagging", "latency");
+classifier.addDocument("Streaming keeps buffering", "latency");
+classifier.addDocument("Lag while browsing", "latency");
 
-classifier.addDocument('Why am I losing packets?', 'packet_loss');
-classifier.addDocument('Connection dropping', 'packet_loss');
-classifier.addDocument('Network disconnecting', 'packet_loss');
-classifier.addDocument('Unstable connection', 'packet_loss');
-classifier.addDocument('Packets getting lost', 'packet_loss');
-classifier.addDocument('Connection timeout', 'packet_loss');
+// Packet Loss
+classifier.addDocument("Why am I losing packets?", "packet_loss");
+classifier.addDocument("Connection dropping", "packet_loss");
+classifier.addDocument("Network disconnecting", "packet_loss");
+classifier.addDocument("Unstable connection", "packet_loss");
+classifier.addDocument("Packets getting lost", "packet_loss");
+classifier.addDocument("Connection timeout", "packet_loss");
+classifier.addDocument("Voice call cuts", "packet_loss");
 
-classifier.addDocument('Why is the connection unstable?', 'jitter');
-classifier.addDocument('Network fluctuating', 'jitter');
-classifier.addDocument('Inconsistent speeds', 'jitter');
-classifier.addDocument('Variable connection', 'jitter');
-classifier.addDocument('Unstable ping', 'jitter');
-classifier.addDocument('Connection quality varies', 'jitter');
+// Jitter
+classifier.addDocument("Why is the connection unstable?", "jitter");
+classifier.addDocument("Network fluctuating", "jitter");
+classifier.addDocument("Inconsistent speeds", "jitter");
+classifier.addDocument("Variable connection", "jitter");
+classifier.addDocument("Unstable ping", "jitter");
+classifier.addDocument("Connection quality varies", "jitter");
 
-classifier.addDocument('Why are there so many errors?', 'errors');
-classifier.addDocument('Network errors occurring', 'errors');
-classifier.addDocument('Connection failures', 'errors');
-classifier.addDocument('Failed network requests', 'errors');
-classifier.addDocument('Network problems', 'errors');
-classifier.addDocument('Connection issues', 'errors');
+// Errors
+classifier.addDocument("Why are there so many errors?", "errors");
+classifier.addDocument("Network errors occurring", "errors");
+classifier.addDocument("Connection failures", "errors");
+classifier.addDocument("Failed network requests", "errors");
+classifier.addDocument("Network problems", "errors");
+classifier.addDocument("Connection issues", "errors");
+classifier.addDocument("Page load errors", "errors");
 
-classifier.addDocument('Is my network secure?', 'security');
-classifier.addDocument('Network vulnerabilities', 'security');
-classifier.addDocument('Connection security', 'security');
-classifier.addDocument('Network protection', 'security');
-classifier.addDocument('Safe network', 'security');
+// Security
+classifier.addDocument("Is my network secure?", "security");
+classifier.addDocument("Network vulnerabilities", "security");
+classifier.addDocument("Connection security", "security");
+classifier.addDocument("Network protection", "security");
+classifier.addDocument("Safe network", "security");
+classifier.addDocument("Someone hacked my Wi-Fi", "security");
 
-classifier.addDocument('How can I improve my network?', 'optimization');
-classifier.addDocument('Speed up network', 'optimization');
-classifier.addDocument('Better connection', 'optimization');
-classifier.addDocument('Optimize network', 'optimization');
-classifier.addDocument('Faster internet', 'optimization');
+// Optimization
+classifier.addDocument("How can I improve my network?", "optimization");
+classifier.addDocument("Speed up network", "optimization");
+classifier.addDocument("Better connection", "optimization");
+classifier.addDocument("Optimize network", "optimization");
+classifier.addDocument("Faster internet", "optimization");
+classifier.addDocument("Improve internet speed", "optimization");
+classifier.addDocument("Enhance performance", "optimization");
+
+// Greetings
+classifier.addDocument("hi", "greeting");
+classifier.addDocument("hello", "greeting");
+classifier.addDocument("hey", "greeting");
+classifier.addDocument("good morning", "greeting");
+classifier.addDocument("good evening", "greeting");
+
+// Identity
+classifier.addDocument("tell me about yourself", "identity");
+classifier.addDocument("are you a bot", "identity");
 
 classifier.train();
 
+const responses = {
+  latency: {
+    response: `High latency can result from congestion, distance, or limited bandwidth. Try:
+1. Using a wired connection
+2. Closing bandwidth-heavy apps
+3. Restarting your router
+4. Contacting your ISP`,
+    confidence: 0.9,
+  },
+  packet_loss: {
+    response: `Packet loss may be caused by weak signals or overloaded networks. Solutions:
+1. Secure all cable connections
+2. Use Ethernet instead of Wi-Fi
+3. Restart network hardware
+4. Update firmware/drivers`,
+    confidence: 0.85,
+  },
+  jitter: {
+    response: `Jitter causes fluctuations in your network quality. Fixes include:
+1. Avoiding network congestion
+2. Using a wired connection
+3. Updating router settings
+4. Using Quality of Service (QoS) settings`,
+    confidence: 0.8,
+  },
+  errors: {
+    response: `Frequent network errors can result from hardware issues or misconfigurations:
+1. Restart modem/router
+2. Check cable and port integrity
+3. Scan for malware
+4. Contact your ISP if persistent`,
+    confidence: 0.85,
+  },
+  security: {
+    response: `To secure your network:
+1. Use WPA3 or WPA2 encryption
+2. Set a strong Wi-Fi password
+3. Disable remote access
+4. Update firmware regularly
+5. Use firewalls and VPNs`,
+    confidence: 0.9,
+  },
+  optimization: {
+    response: `Optimize your connection by:
+1. Placing your router centrally
+2. Using dual-band or mesh networks
+3. Minimizing interference
+4. Upgrading old equipment
+5. Regularly restarting devices`,
+    confidence: 0.85,
+  },
+  greeting: {
+    response: "Hello! 👋 How can I assist you with your network today?",
+    confidence: 1.0,
+  },
+  identity: {
+    response:
+      "I’m your AI-powered Network Troubleshooter! I help diagnose and resolve common network issues such as latency, packet loss, jitter, and more.",
+    confidence: 1.0,
+  },
+};
+
+app.post("/analyze-logs", (req, res) => {
+  try {
+    const metrics = req.body;
+    const anomalies = detectAnomalies(metrics);
+
+    res.json({
+      anomalies,
+      timestamp: new Date().toISOString(),
+      analysis: {
+        summary:
+          anomalies.length > 0
+            ? "Network issues detected"
+            : "Network performing normally",
+        details: anomalies.map((a) => a.description),
+      },
+    });
+  } catch (error) {
+    res.status(500).json({ error: "Analysis failed" });
+  }
+});
 // Mock historical data
 const historicalMean = {
   latency_ms: 100,
   packet_loss: 0.02,
   jitter_ms: 8,
-  errors: 1
+  errors: 1,
 };
 
 const historicalStdDev = {
   latency_ms: 20,
   packet_loss: 0.01,
   jitter_ms: 2,
-  errors: 1
+  errors: 1,
 };
-
-// Enhanced responses with more detailed explanations
-const responses = {
-  latency: {
-    response: 'High latency can be caused by several factors: network congestion, distance to the server, insufficient bandwidth, or hardware limitations. Try these steps:\n1. Connect via ethernet instead of Wi-Fi\n2. Close bandwidth-heavy applications\n3. Check for background downloads\n4. Consider upgrading your internet plan',
-    confidence: 0.9
-  },
-  packet_loss: {
-    response: 'Packet loss often occurs due to network congestion, poor signal quality, or hardware issues. Here are some solutions:\n1. Check physical connections\n2. Move closer to your Wi-Fi router\n3. Update network drivers\n4. Contact your ISP if issues persist',
-    confidence: 0.85
-  },
-  jitter: {
-    response: 'Network jitter (connection instability) is usually caused by varying network conditions, interference, or router issues. Try these fixes:\n1. Use Quality of Service (QoS) settings\n2. Minimize Wi-Fi interference\n3. Update router firmware\n4. Consider a wired connection',
-    confidence: 0.8
-  },
-  errors: {
-    response: 'Network errors can indicate hardware problems, configuration issues, or service provider problems. Troubleshooting steps:\n1. Restart your network equipment\n2. Check for hardware failures\n3. Verify network settings\n4. Monitor error patterns',
-    confidence: 0.85
-  },
-  security: {
-    response: 'Network security is crucial. Here\'s a security checklist:\n1. Use WPA3 encryption if available\n2. Change default passwords\n3. Keep firmware updated\n4. Enable firewall protection\n5. Use a VPN for sensitive data',
-    confidence: 0.9
-  },
-  optimization: {
-    response: 'To optimize your network performance:\n1. Use modern networking equipment\n2. Position your router optimally\n3. Choose less congested Wi-Fi channels\n4. Consider mesh networking\n5. Regular maintenance and updates',
-    confidence: 0.85
-  }
-};
-
-app.post('/analyze-logs', (req, res) => {
-  try {
-    const metrics = req.body;
-    const anomalies = detectAnomalies(metrics);
-    
-    res.json({
-      anomalies,
-      timestamp: new Date().toISOString(),
-      analysis: {
-        summary: anomalies.length > 0 
-          ? 'Network issues detected'
-          : 'Network performing normally',
-        details: anomalies.map(a => a.description)
-      }
-    });
-  } catch (error) {
-    res.status(500).json({ error: 'Analysis failed' });
-  }
-});
-
-app.post('/ask', (req, res) => {
+app.post("/ask", (req, res) => {
   try {
     const { query } = req.body;
     const category = classifier.classify(query);
     const response = responses[category] || {
-      response: 'I cannot answer that question specifically, but I can help with network performance, security, and optimization questions.',
-      confidence: 0.5
+      response:
+        "I cannot answer that question specifically, but I can help with network performance, security, and optimization questions.",
+      confidence: 0.5,
     };
 
     res.json({
       response: response.response,
       confidence: response.confidence,
-      category
+      category,
     });
   } catch (error) {
-    res.status(500).json({ error: 'Failed to process query' });
+    res.status(500).json({ error: "Failed to process query" });
   }
 });
 

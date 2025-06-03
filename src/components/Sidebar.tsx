@@ -1,6 +1,5 @@
-import React from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
-import { Home, AlertCircle, FileText } from 'lucide-react';
+import { Home, FileText ,Network} from 'lucide-react';
 
 const Sidebar = () => {
   const navigate = useNavigate();
@@ -8,8 +7,8 @@ const Sidebar = () => {
 
   const menuItems = [
     { path: '/', label: 'Dashboard', icon: <Home className="w-5 h-5" /> },
-    { path: '/issues', label: 'Issues', icon: <AlertCircle className="w-5 h-5" /> },
-    { path: '/reports', label: 'Reports', icon: <FileText className="w-5 h-5" /> }
+    { path: '/reports', label: 'Reports', icon: <FileText className="w-5 h-5" /> },
+    { path: '/network-ai',label :'ChatBot',icon:<Network className="w-5 h-5" />}
   ];
 
   return (

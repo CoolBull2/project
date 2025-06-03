@@ -1,38 +1,48 @@
-import React, { useState, useEffect } from 'react';
-import axios from 'axios';
-import { NetworkStatus } from '../components/NetworkStatus';
-import { AuroraBackground } from '../components/ui/aurora-background';
-import { motion, AnimatePresence } from 'framer-motion';
-import { Activity, AlertTriangle, PenTool as Tool, Zap } from 'lucide-react';
-import { NetworkDiagnostics, DiagnosticResult } from '../lib/diagnostics';
-import { AiInsights } from '../components/AiInsights';
-import { aiService, type NetworkMetrics, type Anomaly } from '../lib/ai';
+import { useState } from "react";
+import axios from "axios";
+import { NetworkStatus } from "../components/NetworkStatus";
+import { AuroraBackground } from "../components/ui/aurora-background";
+import { motion, AnimatePresence } from "framer-motion";
+import { Activity, AlertTriangle, PenTool as Tool, Zap } from "lucide-react";
+import { NetworkDiagnostics, DiagnosticResult } from "../lib/diagnostics";
+import { aiService, type NetworkMetrics } from "../lib/ai";
+import { useReportStore } from "../store/reportStore";
+import { useDiagnosticStore } from "../store/diagnosticStore";
 
 function Dashboard() {
-  const [status, setStatus] = useState<string | null>(null);
-  const [report, setReport] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
-  const [diagnosticResults, setDiagnosticResults] = useState<DiagnosticResult[]>([]);
-  const [suggestions, setSuggestions] = useState<string[]>([]);
   const [showFixes, setShowFixes] = useState(true);
-  const [anomalies, setAnomalies] = useState<Anomaly[]>([]);
+  const { addReport } = useReportStore();
+
+  const {
+    status,
+    report,
+    diagnosticResults,
+    suggestions,
+    anomalies,
+    setStatus,
+    setReport,
+    setDiagnosticResults,
+    setSuggestions,
+    setAnomalies,
+  } = useDiagnosticStore();
 
   const runDiagnostics = async () => {
     setIsLoading(true);
-    setStatus('checking');
+    setStatus("checking");
     try {
       // Run network health check
-      const response = await axios.get('http://127.0.0.1:5000/network-health');
+      const response = await axios.get("http://127.0.0.1:5000/network-health");
       setStatus(response.data.status);
       setReport(response.data.reason);
 
       // Extract metrics from the response
       const metrics: NetworkMetrics = {
         timestamp: new Date().toISOString(),
-        latency_ms: parseFloat(response.data.data.split(',')[0]),
-        packet_loss: parseFloat(response.data.data.split(',')[1]),
+        latency_ms: parseFloat(response.data.data.split(",")[0]),
+        packet_loss: parseFloat(response.data.data.split(",")[1]),
         jitter_ms: Math.random() * 20, // Mock jitter data
-        errors: Math.floor(Math.random() * 5) // Mock error count
+        errors: Math.floor(Math.random() * 5), // Mock error count
       };
 
       // Run AI analysis
@@ -46,45 +56,95 @@ function Dashboard() {
       // Generate fix suggestions
       const fixSuggestions = await NetworkDiagnostics.suggestFixes(results);
       setSuggestions(fixSuggestions);
+
+      // Save diagnostic results to reports
+      await addReport({
+        title: "Network Diagnostic Report",
+        status:
+          response.data.status === "healthy"
+            ? "Completed"
+            : response.data.status === "warning"
+            ? "In Progress"
+            : "Failed",
+        type: "Diagnostic",
+        details: {
+          latency: metrics.latency_ms,
+          packetLoss: metrics.packet_loss,
+          bandwidth: 1000 - metrics.latency_ms, // Simplified bandwidth estimation
+          dnsResolution: response.data.status !== "critical",
+        },
+        summary: `${response.data.reason}\n${results
+          .map((r) => `- ${r.issue}: ${r.recommendation}`)
+          .join("\n")}`,
+      });
     } catch (error) {
-      setStatus('critical');
-      setReport('Error fetching report.');
-      setDiagnosticResults([]);
-      setSuggestions([]);
+      setStatus("critical");
+      setReport("Error fetching report.");
+      setDiagnosticResults([
+        {
+          issue: "Network Connectivity Error",
+          severity: "critical",
+          recommendation:
+            "Unable to connect to diagnostic service. Please check your connection.",
+        },
+      ]);
+      setSuggestions([
+        "Check your internet connection",
+        "Ensure the diagnostic service is running",
+      ]);
       setAnomalies([]);
+
+      // Save error report
+      await addReport({
+        title: "Network Diagnostic Error",
+        status: "Failed",
+        type: "Error",
+        details: {
+          latency: 0,
+          packetLoss: 100,
+          bandwidth: 0,
+          dnsResolution: false,
+        },
+        summary:
+          "Failed to connect to diagnostic service. Network may be unreachable.",
+      });
     } finally {
       setIsLoading(false);
     }
   };
 
-  const getSeverityColor = (severity: DiagnosticResult['severity']) => {
+  const getSeverityColor = (severity: DiagnosticResult["severity"]) => {
     switch (severity) {
-      case 'critical':
-        return 'text-red-500';
-      case 'high':
-        return 'text-orange-500';
-      case 'medium':
-        return 'text-yellow-500';
+      case "critical":
+        return "text-red-500";
+      case "high":
+        return "text-orange-500";
+      case "medium":
+        return "text-yellow-500";
       default:
-        return 'text-blue-500';
+        return "text-blue-500";
     }
   };
 
-  const getSeverityBadge = (severity: DiagnosticResult['severity']) => {
+  const getSeverityBadge = (severity: DiagnosticResult["severity"]) => {
     switch (severity) {
-      case 'critical':
-        return 'bg-red-100 text-red-700';
-      case 'high':
-        return 'bg-orange-100 text-orange-700';
-      case 'medium':
-        return 'bg-yellow-100 text-yellow-700';
+      case "critical":
+        return "bg-red-100 text-red-700";
+      case "high":
+        return "bg-orange-100 text-orange-700";
+      case "medium":
+        return "bg-yellow-100 text-yellow-700";
       default:
-        return 'bg-blue-100 text-blue-700';
+        return "bg-blue-100 text-blue-700";
     }
   };
 
   const timestamp = new Date().toLocaleTimeString();
-  const hasNoIssues = diagnosticResults.length === 0 && suggestions.length === 0;
+  const hasNoIssues =
+    diagnosticResults.length === 0 &&
+    suggestions.length === 0 &&
+    anomalies.length === 0 &&
+    status === "healthy";
 
   return (
     <AuroraBackground>
@@ -112,7 +172,7 @@ function Dashboard() {
               className="flex items-center gap-2 px-6 py-3 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-colors disabled:opacity-50"
             >
               <Activity className="w-5 h-5" />
-              {isLoading ? 'Running Diagnostics...' : 'Run Diagnostics'}
+              {isLoading ? "Running Diagnostics..." : "Run Diagnostics"}
             </button>
           </div>
 
@@ -128,9 +188,6 @@ function Dashboard() {
               <p className="text-gray-700 dark:text-gray-300">{report}</p>
             </motion.div>
           )}
-
-          {/* AI Insights Component */}
-          <AiInsights anomalies={anomalies} />
 
           {/* Diagnostic Results and Suggestions */}
           <div className="space-y-6">
@@ -170,7 +227,9 @@ function Dashboard() {
                     <div className="p-6 bg-white dark:bg-gray-800 rounded-xl shadow-lg">
                       <div className="flex items-center gap-2 mb-4">
                         <AlertTriangle className="w-5 h-5 text-orange-500" />
-                        <h3 className="text-lg font-semibold">Current Issues</h3>
+                        <h3 className="text-lg font-semibold">
+                          Current Issues
+                        </h3>
                       </div>
                       <div className="space-y-4">
                         {diagnosticResults.map((result, index) => (
@@ -179,7 +238,11 @@ function Dashboard() {
                             className="p-4 bg-gray-50 dark:bg-gray-700 rounded-lg"
                           >
                             <div className="flex justify-between items-center mb-2">
-                              <span className={`font-semibold ${getSeverityColor(result.severity)}`}>
+                              <span
+                                className={`font-semibold ${getSeverityColor(
+                                  result.severity
+                                )}`}
+                              >
                                 {result.issue}
                               </span>
                               <span
@@ -206,14 +269,16 @@ function Dashboard() {
                         onClick={() => setShowFixes(!showFixes)}
                         className="text-sm text-blue-600 dark:text-blue-400 underline"
                       >
-                        {showFixes ? 'Hide' : 'Show'} Recommendations
+                        {showFixes ? "Hide" : "Show"} Recommendations
                       </button>
 
                       {showFixes && (
                         <div className="p-6 bg-white dark:bg-gray-800 rounded-xl shadow-lg">
                           <div className="flex items-center gap-2 mb-4">
                             <Tool className="w-5 h-5 text-green-500" />
-                            <h3 className="text-lg font-semibold">Recommended Fixes</h3>
+                            <h3 className="text-lg font-semibold">
+                              Recommended Fixes
+                            </h3>
                           </div>
                           <div className="grid gap-4">
                             {suggestions.map((suggestion, index) => (

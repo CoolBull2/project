@@ -7,6 +7,7 @@ import platform
 app = Flask(__name__)
 CORS(app)  # Enable CORS for frontend requests
 
+
 def get_network_health(host="google.com", packets=4):
     system = platform.system().lower()
 
@@ -17,7 +18,8 @@ def get_network_health(host="google.com", packets=4):
         ping_cmd = ["ping", "-c", str(packets), host]
 
     try:
-        result = subprocess.run(ping_cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
+        result = subprocess.run(
+            ping_cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
         output = result.stdout
 
         if result.returncode != 0:
@@ -38,21 +40,23 @@ def get_network_health(host="google.com", packets=4):
 
         # Categorize network health
         if packet_loss == 100:
-            return {"status": "critical", "reason": "No response from host.","data": f"{avg_latency,packet_loss}"}
+            return {"status": "critical", "reason": "No response from host.", "data": f"{avg_latency, packet_loss}"}
         elif packet_loss > 50 or avg_latency > 500:
-            return {"status": "critical", "reason": f"High latency: {avg_latency} ms, {packet_loss}% packet loss.","data": f"{avg_latency,packet_loss}"}
+            return {"status": "critical", "reason": f"High latency: {avg_latency} ms, {packet_loss}% packet loss.", "data": f"{avg_latency, packet_loss}"}
         elif packet_loss > 10 or avg_latency > 200:
-            return {"status": "warning", "reason": f"Moderate latency: {avg_latency} ms, {packet_loss}% packet loss.","data": f"{avg_latency,packet_loss}"}
+            return {"status": "warning", "reason": f"Moderate latency: {avg_latency} ms, {packet_loss}% packet loss.", "data": f"{avg_latency, packet_loss}"}
         else:
-            return {"status": "healthy", "reason": f"Stable connection: {avg_latency} ms, {packet_loss}% packet loss.","data": f"{avg_latency,packet_loss}"}
+            return {"status": "healthy", "reason": f"Stable connection: {avg_latency} ms, {packet_loss}% packet loss.", "data": f"{avg_latency, packet_loss}"}
 
     except Exception as e:
         return {"status": "critical", "reason": f"Error: {e}"}
+
 
 @app.route('/network-health', methods=['GET'])
 def network_health_api():
     result = get_network_health()
     return jsonify(result)
+
 
 if __name__ == '__main__':
     app.run(debug=True, port=5000)
